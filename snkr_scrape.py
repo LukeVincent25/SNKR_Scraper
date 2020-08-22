@@ -17,4 +17,3 @@ for row in page_source:
     print("")
     print("------------------------")
     print("")
-
