@@ -1,0 +1,5 @@
+2020/08/26-11:56:01.311 2960 Reusing MANIFEST C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\IndexedDB\https_www.nike.com_0.indexeddb.leveldb/MANIFEST-000001
+2020/08/26-11:56:05.597 990 Level-0 table #5: started
+2020/08/26-11:56:05.610 990 Level-0 table #5: 2184 bytes OK
+2020/08/26-11:56:05.616 990 Delete type=0 #3
+2020/08/26-11:56:05.617 990 Manual compaction at level-0 from (begin) .. (end); will stop at (end)

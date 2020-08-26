@@ -20,9 +20,11 @@ SIZE=0
 retries = 0
 
 while True:
-    if CART == False:
+    driver.get("https://www.nike.com/launch/t/sb-dunk-low-medicom-be-rbrick")
+    time.sleep(10)
+    """ if CART == False:
         #driver.get("https://www.nike.com/launch/t/adapt-bb-2-0-tie-dye")
-        driver.get("https://www.nike.com/launch/t/sb-dunk-low-medicom-be-rbrick")
+    
         #driver.get("https://www.nike.com/launch/t/blazer-mid-77-grey-fog")
 
         # Click Button
@@ -32,7 +34,7 @@ while True:
         print("Selecting Size")
         size_path = '//*[@id="root"]/div/div/div[1]/div/div[3]/div[2]/div/section/div[2]/aside/div/div[2]/div/div[2]/ul/li[9]/button'
         try:
-            WebDriverWait(driver, 2).until(EC.element_to_be_clickable((By.XPATH, size_path))).click()
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, size_path))).click()
         except:
             retries = retries + 1
             print("retries: ")
@@ -42,7 +44,7 @@ while True:
         print("Adding to cart")
         cart_path = '//*[@id="root"]/div/div/div[1]/div/div[3]/div[2]/div/section/div[2]/aside/div/div[2]/div/div[2]/div/button'
         WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cart_path))).click()
-        time.sleep(3)
+        time.sleep(3) """
 
     # Go to Checkout
     print("Going to Checkout")
@@ -137,7 +139,7 @@ while True:
 
     # Buy
     buy_path = '//*[@id="orderreview"]/div/div/div/div/section[2]/div/button'
-    #WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, buy_path))).click()
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, buy_path))).click()
     print("SHOE BOUGHT")
     print("Program Terminated")
     break
