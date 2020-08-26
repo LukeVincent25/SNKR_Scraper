@@ -8,21 +8,22 @@ import time
 options = webdriver.ChromeOptions()
 options.add_argument("start-maximized")
 options.add_argument('disable-infobars')
+options.add_argument("user-data-dir=selenium")
 prefs = {"profile.managed_default_content_settings.images": 2}
 options.add_experimental_option("prefs", prefs)
 
 
 driver = webdriver.Chrome(chrome_options=options)
 
-CART = False
+CART = True
 SHOE_AMOUNT = 1
 SIZE=0
 retries = 0
 
 while True:
-    driver.get("https://www.nike.com/launch/t/sb-dunk-low-medicom-be-rbrick")
-    time.sleep(10)
-    """ if CART == False:
+    #driver.get("https://www.nike.com/launch/t/sb-dunk-low-medicom-be-rbrick")
+    #time.sleep(10)
+    if CART == False:
         #driver.get("https://www.nike.com/launch/t/adapt-bb-2-0-tie-dye")
     
         #driver.get("https://www.nike.com/launch/t/blazer-mid-77-grey-fog")
@@ -40,20 +41,22 @@ while True:
             print("retries: ")
             print(retries)
             continue
+
         # add to cart
         print("Adding to cart")
         cart_path = '//*[@id="root"]/div/div/div[1]/div/div[3]/div[2]/div/section/div[2]/aside/div/div[2]/div/div[2]/div/button'
         WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cart_path))).click()
-        time.sleep(3) """
+        time.sleep(3)
 
     # Go to Checkout
     print("Going to Checkout")
     driver.get("https://www.nike.com/us/en/checkout")
 
-    first_name = "Alex"
+    """ first_name = "Alex"
     first_name_path = '//*[@id="firstName"]'
     try:
         WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, first_name_path))).send_keys(first_name)
+        CART = True
     except:
         continue
 
@@ -77,9 +80,9 @@ while True:
     phone_box = driver.find_elements_by_xpath(phone_path)
     phone_box[0].send_keys(phone)
 
-    address_box[0].send_keys(Keys.RETURN)
+    address_box[0].send_keys(Keys.RETURN) """
 
-    # Save and Continue
+    """     # Save and Continue
     print("Save and Continue")
     save_and_continue_path = '//*[@id="shipping"]/div/div[2]/form/div/div/div/div[2]/button'
     WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, save_and_continue_path))).click()
@@ -92,15 +95,14 @@ while True:
     except:
         WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, save_and_continue_path))).click()
         WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, ctp_path))).click()
-    
+     """
 
     # Fill CC Info
-    print("Filling in Credit Card information")
+    
+    """ print("Filling in Credit Card information")
     cc_num = '4744 8300 0844 3270'
     cc_path = '//*[@id="creditCardNumber"]'
-    cc_iframe = '//*[@id="payment"]/div/div[1]/div[2]/div[4]/div/div[1]/div[2]/iframe'
-
-    WebDriverWait(driver, 20).until(EC.frame_to_be_available_and_switch_to_it((By.XPATH,cc_iframe)))
+    
     WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cc_path))).send_keys('47448300')
     time.sleep(.5)
     WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cc_path))).send_keys('08')
@@ -111,23 +113,29 @@ while True:
     time.sleep(.5)
     WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cc_path))).send_keys('2')
     time.sleep(.5)
-    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cc_path))).send_keys('70')
+    WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cc_path))).send_keys('70') """
 
 
-    # Fill CC Expiration
+    """ # Fill CC Expiration
     cc_exp = '1021'
     cc_exp_path = '//*[@id="expirationDate"]'
     WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, cc_exp_path))).send_keys(cc_exp)
+ """
+    # Swap to iFrame
+    print("entering iFrame")
+    cc_iframe = '//*[@id="mastercard-cvv-form"]/div/div[3]/div/iframe'
+    WebDriverWait(driver, 20).until(EC.frame_to_be_available_and_switch_to_it((By.XPATH,cc_iframe)))
 
     # Security Code
+    print("entering sc code")
     sc = '981'
     sc_path = '//*[@id="cvNumber"]'
     WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, sc_path))).send_keys(sc)
 
-    time.sleep(.5)
     # Switching to Parent Frame
-    driver.switch_to.default_content
-    time.sleep(.5)
+    print("exiting iFrame")
+    driver.switch_to.default_content()
+
     # Review Order
     review_path = '//*[@id="payment"]/div/div[1]/div[2]/div[5]/button'
     try:
@@ -139,7 +147,7 @@ while True:
 
     # Buy
     buy_path = '//*[@id="orderreview"]/div/div/div/div/section[2]/div/button'
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, buy_path))).click()
+    # WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, buy_path))).click()
     print("SHOE BOUGHT")
     print("Program Terminated")
     break

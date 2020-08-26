@@ -1,0 +1,970 @@
+// Self-invoking instance, no globals.
+(function () {
+
+    // Used as a fallback when we don't know the correct pattern for a certain card at a
+    // specific length. The default is long enough to cover the longest account numbers we handle
+    // and provides the user a more visually accessible view of the account number to aid
+    // initial entry and possible correction.
+    var DEFAULT_PATTERN = '9999 9999 9999 9999 9999';
+    var DEFAULT_LANG = 'EN';
+    var DEFAULT_COUNTRY = 'US';
+    var DEFAULT_NUMBER_PLACEHOLDER = 'Number'; // Ultimately these placeholder values
+    var DEFAULT_DATE_PLACEHOLDER = 'MM/YY';    // will be provided via Java
+    var DEFAULT_CVV_PLACEHOLDER = 'CVV';
+    var currentLang = DEFAULT_LANG;
+    var currentCountry = DEFAULT_COUNTRY;
+
+    // Turn masker on or off - should be turned off for IE, IE is slow at masking and
+    // eating users characters as they type
+    var maskerEnabled = true;
+    document.location.search.substring(1).split('&').forEach(function (param) {
+        if (param.indexOf('maskerEnabled=') === 0) {
+            maskerEnabled = param.substring(14) === 'true';
+        }
+    });
+
+    /******************* ************************** *******************/
+    /*******************         ELEMENTS           *******************/
+    /******************* ************************** *******************/
+    var ccInput = document.getElementById('creditCardNumber');
+    var dateInput = document.getElementById('expirationDate');
+    var cvvInput = document.getElementById('cvNumber');
+
+    var yearInput = document.getElementById('expirationYear');
+    var monthInput = document.getElementById('expirationMonth');
+
+    var parentDomain = document.getElementById('parentDomain').value;
+    var isIFrameBusterEnabled = document.getElementById('enableIFrameBuster').value;
+
+    var allEditableInputs = document.querySelectorAll('#creditCardForm input:not([type="hidden"])');
+
+
+    /******************* ************************** *******************/
+    /*******************         PLACEHOLDERS       *******************/
+    /******************* ************************** *******************/
+//  function getPlaceholder(key) {
+//    var placeholder = getQueryValue(key);
+//    return placeholder && decodeURIComponent(placeholder) || false;
+//  }
+//  // Set placeholder values
+//  if (ccInput) {
+//    ccInput.setAttribute('placeholder', DEFAULT_NUMBER_PLACEHOLDER);
+//  }
+//  if (dateInput) {
+//    dateInput.setAttribute('placeholder', DEFAULT_DATE_PLACEHOLDER);
+//  }
+//  if (cvvInput) {
+//    cvvInput.setAttribute('placeholder', DEFAULT_CVV_PLACEHOLDER);
+//  }
+
+
+    /******************* ************************** *******************/
+    /*******************         VALIDATORS         *******************/
+    /******************* ************************** *******************/
+
+        // A few of these card validators have overlapping prefix detection and these are grouped together
+        // with the most specific first. Card detection breaks out its loop as soon as the first card match
+        // is found.
+    var cardValidators = [
+            {
+                cardNumberLength: [15],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    15: '9999 999999 99999'
+                },
+                prefix: /^(34|37)/,
+                type: 'AMERICANEXPRESS',
+                className: 'americanexpress'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [6],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(402044|402043|402042|402041|402169|402186|402222|402290|402425|402426|402427|402428|404101|405656|405785|406261|406279|406278|406277|408089|408444|408443|410823|417654|419040|419039|419038|419037|419858|419859|419860|420902|420901|420900|420967|423312|424328|427341|429526|430102|431489|431488|432920|432919|432918|432917|432933|432932|432931|432930|433976|442447|448439|448438|448437|448436|453223|453222|453221|453220|453999|453998|453997|454727|454746|455071|455072|456808|456807|456806|456805|457662|459807|459812|459819|459822|459825|459831|464414|464415|472675|474178|474180|474181|482463|483008|486420|487708|489972|491694|491693|491692|491691|491780|492298|492297|492296|492295|493500|498802|498803|510134|511653|511652|511651|511650|512750|512797|513348|516303|518525|518648|518665|520007|520014|520345|520900|520915|520998|522686|522845|522844|522843|522842|524343|524393|524397|524396|524395|525573|525572|525571|525570|525585|525584|525583|525582|525581|525580|525579|525578|525577|525576|525575|525574|525593|525592|525591|525590|525599|525598|525597|525596|525595|525594|526265|526742|526741|526740|526739|526820|527388|528089|528097|528158|528397|529204|530462|530538|531154|531178|531177|531176|531175|531174|531173|531172|531171|531170|531542|531647|532428|532969|533004|533003|533146|533148|533217|533533|533902|533950|534624|535045|535836|535845|535928|536497|536530|536535|536540|536545|536550|536590|537639|537673|538748|538755|539622|539631|540608|540610|541506|541517|541520|541539|542075|544196|544309|544567|545168|547896|548102|548281|550217|552172|552181|552180|552179|552178|552308|552734|552752|552759|552975|553087|553140|553139|553426|553430|553429|553432|553439|553456|554842|556025|558382|558478|558477|558476|558475|558646|558689|558688|558687|558686)/,
+                type: 'CARTASI',
+                className: 'cartasi'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(94|95|5858)/,
+                type: 'CARTEBLEUE',
+                className: 'cartebleue'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(4175|4571|5019)/,
+                type: 'DANKORT',
+                className: 'dankort'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [6],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(6011|65|644|645|646|647|648|649|622)/,
+                type: 'DISCOVER',
+                className: 'discover'
+            }, {
+
+                cardNumberLength: [13, 14, 15, 16, 17, 18, 19],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(5018|5020|5038|6304|6759|6761|6762|6763)/,
+                type: 'DOMESTICMAESTRO',
+                className: 'domesticmaestro'
+            }, {
+                cardNumberLength: [16],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(50|56|58|6)/,
+                type: 'INTERNATIONALMAESTRO',
+                className: 'internationalmaestro'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(352[89]|35[3-8][0-9])/,
+                type: 'JCB',
+                className: 'jcb'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(222[1-8][0-9]{2}|2229[0-8][0-9]|22299[0-9]|22[3-9][0-9]{3}|2[3-6][0-9]{4}|27[01][0-9]{3}|2720[0-8][0-9]|27209[0-9]|5[1-6])/,
+                type: 'MASTERCARD',
+                className: 'mastercard'
+            }, {
+
+                cardNumberLength: [16],
+                initialValidatorsLength: [6],
+                patternsMap: {
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^(48440[6-9]|4844[1-4][0-9]|48445[0-5]|4917[345][0-9]|491880)/,
+                type: 'VISAELECTRON',
+                className: 'visaelectron'
+            }, {
+
+                cardNumberLength: [13, 16],
+                initialValidatorsLength: [4],
+                patternsMap: {
+                    13: '9999 99999 9999',
+                    16: '9999 9999 9999 9999'
+                },
+                prefix: /^4/,
+                type: 'VISA',
+                className: 'visa'
+            }
+        ];
+
+    // Build validator map that references by allowed card lengths
+    var cardLengthValidatorMap = {};
+
+    cardValidators.forEach(function (validator) {
+        validator.cardNumberLength.forEach(function (len) {
+            // instantiate
+            cardLengthValidatorMap[len] = cardLengthValidatorMap[len] || [];
+            cardLengthValidatorMap[len].push(validator);
+        });
+    });
+
+    // Build validator map that references by length of digits required to determine card type
+    var firstFourValidatorsMap = {};
+
+    cardValidators.forEach(function (validator) {
+        validator.initialValidatorsLength.forEach(function (len) {
+            // instantiate
+            firstFourValidatorsMap[len] = firstFourValidatorsMap[len] || [];
+            firstFourValidatorsMap[len].push(validator);
+        });
+    });
+
+
+    /******************* ************************** *******************/
+    /*******************            DATA            *******************/
+    /******************* ************************** *******************/
+
+    var data = {
+        cc: {
+            value: (ccInput) ? ccInput.value : null,
+            appliedPattern: null,
+            submissionValue: null,
+            regex: /^[0-9]{15,16}$/,
+            touched: false,
+            type: 'UNKNOWN',
+            valid: false,
+            validator: null
+        },
+        cvv: {
+            value: (cvvInput) ? cvvInput.value : null,
+            submissionValue: null,
+            regex: /^[0-9]{3,4}$/,
+            touched: false,
+            valid: false
+        },
+        expDate: {
+            value: (dateInput) ? dateInput.value : null,
+            submissionValue: null,
+            regex: /^[0-9]{1,2}\/[0-9]{2}$/,
+            touched: false,
+            valid: false
+        },
+        all: {
+            valid: false
+        }
+    };
+
+    var creditCardInfoId = getQueryValue('id');
+
+    /**
+     * Mode 1 = All Inputs
+     * Mode 2 = CC and Date (no CVV)
+     * Mode 3 = CVV Only
+     */
+    var MODE = (function () {
+        var m;
+
+        if (ccInput && dateInput && cvvInput) {
+            m = 1;
+        } else if (ccInput && dateInput) {
+            m = 2;
+        } else if (dateInput && cvvInput) {
+            m = 4;
+        } else {
+            m = 3
+        }
+
+        return m;
+    }());
+
+
+    /******************* ************************** *******************/
+    /*******************           EVENTS           *******************/
+    /******************* ************************** *******************/
+    for (var x = 0; x < allEditableInputs.length; x++) {
+        allEditableInputs[x].addEventListener('keyup', onInputChange);
+        allEditableInputs[x].addEventListener('blur', onInputBlur);
+    }
+
+    if (cvvInput) {
+        cvvInput.addEventListener('focus', clearCVV);
+    }
+
+    /******************* ************************** *******************/
+    /*******************        EVENT HANDLERS      *******************/
+
+    /******************* ************************** *******************/
+
+    /**
+     * Silently validate and communicate to parent without updating UI.
+     * Do not make a service call unless all inputs pass.
+     * Only remove error states silently, do not show UI error.
+     * Note: We use 'keydown' instead of keypress or input event bc we need it
+     * to fire on delete/backspace.
+     */
+    function onInputChange(e) {
+        var shortName = e.target.dataset.shortname;
+
+        // Early return if nothing changed, this is required because
+        // 'keyup' is also fired when 'shift', 'alt', etc are pressed.
+        if (data[shortName].value === e.target.value) {
+            return;
+        }
+
+        var newInputValue = data[shortName].value = e.target.value;
+
+        // Validity of input and form
+        var oldInputValidity = data[shortName].valid;
+        var newInputValidity = data[shortName].valid = validateSingle(shortName, newInputValue);
+        var newFormStatus = isFormValid();
+
+        // If input has been first blurred (touched) and invalid, or this input
+        // is now valid when it wasn't, update UI.
+        if (data[shortName].touched || (newInputValidity && newInputValidity !== oldInputValidity)) {
+            updateErrorStates();
+        }
+
+        // If entire form is valid
+        if (newFormStatus) {
+            postCreditCard();
+        }
+    }
+
+    /**
+     * Update data model with new value, then test form validation.
+     * @param  {object} e event data
+     * @return {undefined}
+     */
+    function onInputBlur(e) {
+        var shortName = e.target.dataset.shortname;
+        var newValue = data[shortName].value = e.target.value;
+
+        // Update data model
+        data[shortName].valid = validateSingle(shortName, newValue);
+        ;
+
+        // Update touch state
+        if (!data[shortName].touched) {
+            data[shortName].touched = true;
+        }
+
+        // Submit to backend if valid
+        if (isFormValid()) {
+            postCreditCard();
+        }
+
+        updateErrorStates();
+    }
+
+
+    /******************* ************************** *******************/
+    /******************* Front-End Validation Tests *******************/
+
+    /******************* ************************** *******************/
+
+
+    /**
+     * Validate cvv string and update data model.
+     * @param  {string}  val Value to be tested
+     * @return {Boolean} Is cvv valid?
+     */
+    function isValidCVV(val) {
+        return data.cvv.regex.test(val);
+    }
+
+    /**
+     * Validate date string, update hidden fields and data model.
+     * @param  {string}  val Value to be tested
+     * @return {Boolean} Is date valid?
+     */
+    function isValidDate(dateString) {
+        var validFormat = data.expDate.regex.test(dateString);
+        var minimumDate = new Date();
+        var month;
+        var year;
+        var expDate;
+
+        // early return
+        if (!validFormat) {
+            data.expDate.valid = false;
+            return false;
+        }
+
+        month = dateString.split('/')[0];
+        year = dateString.split('/')[1];
+
+        // Update hidden fields
+        monthInput.value = month;
+        yearInput.value = '20' + year;
+
+        // Expiration on the same month is still a valid date, so subtract a month.
+        minimumDate.setMonth(minimumDate.getMonth() - 1);
+
+        // Uh-oh, only future proof to 2099.  Update this code in 2098! (Why Greg, why?)
+        expDate = new Date('20' + year, month - 1);
+
+        // Is date in the future?
+        return (expDate > minimumDate);
+    }
+
+    /**
+     Searches a string for fullwidth characters and converts any found to halfwidth.
+     https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms
+
+     Sample chars - halfwidth vs. fullwidth
+     1234567890
+     １２３４５６７８９０
+     */
+    function normalizeFullWidthNumbers(inputValue) {
+        var updatedValue;
+
+        if (inputValue !== null) {
+            updatedValue = inputValue.replace(/[\uFF10-\uFF19]/g, function (character) {
+                return String.fromCharCode(character.charCodeAt() - 0xFEE0);
+            });
+        }
+
+        return updatedValue;
+    }
+
+    /**
+     * Validate credit card and update data model.
+     * @param  {string}  val Value to be tested
+     * @return {Boolean} Is value valid?
+     */
+    function isValidCC(val) {
+        var isValid;
+        var previousCardType = data.cc.type;
+        var normalized = normalizeFullWidthNumbers(val);
+        var cleanCC = (normalized.match(/[0-9xX ]/g) || []).join('');
+        var submitCC = (normalized.match(/[0-9xX]/g) || []).join('');
+
+        // Update input and data model with only valid numbers. We allow spaces initially,
+        // then strip them out when persisting data.
+        ccInput.value = cleanCC;
+        data.cc.value = submitCC;
+
+        // Identifies the card and references validation data in data.cc object
+        setCreditCardValidator(submitCC);
+
+        // Call pattern masker; masker manages previous mask and only applies if necessary
+        maskCreditCardPattern();
+
+        return data.cc.validator && isValidMod10(submitCC);
+    }
+
+    /** Different forms have different inputs, thus the 'all'
+     *  being valid is dependent on the MODE.
+     *  @return {boolean} isValid Are all inputs on the page valid?
+     */
+    function isFormValid() {
+        var isValid = false;
+
+
+        switch (MODE) {
+            case 1:
+                // Validate All Three
+                isValid = (data.cc.valid && data.expDate.valid && data.cvv.valid);
+                break;
+            case 2:
+                // Validate CC Number and Date
+                isValid = (data.cc.valid && data.expDate.valid);
+                break;
+            case 3:
+                // Validate CVV Only
+                isValid = data.cvv.valid;
+                break;
+            case 4:
+                // Validate Exp and CVV
+                isValid = (data.expDate.valid && data.cvv.valid);
+                break;
+        }
+
+        data.all.valid = isValid;
+        postValidationResults();
+
+        return isValid;
+    }
+
+    /**
+     * Helper method for routing validation based on input type
+     * @param  {string} validationType Type of validation to perform
+     * @param  {string} value          Input value
+     * @return {boolean} isValid       Validations return validity boolean
+     */
+    function validateSingle(validationType, value) {
+        var isValid;
+
+        switch (validationType) {
+            case 'cc':
+                isValid = isValidCC(value);
+                break;
+            case 'expDate':
+                isValid = isValidDate(value);
+                break;
+            case 'cvv':
+                isValid = isValidCVV(value);
+                break;
+        }
+
+        return isValid;
+    }
+
+
+    /******************* ************************** *******************/
+
+    /*******************    ERROR STATE HANDLING    *******************/
+    /******************* ************************** *******************/
+    function updateErrorStates() {
+        addRemoveError(ccInput, (!data.cc.valid && data.cc.touched));
+        addRemoveError(dateInput, (!data.expDate.valid && data.expDate.touched));
+        addRemoveError(cvvInput, (!data.cvv.valid && data.cvv.touched));
+    }
+
+    function addRemoveError(el, isInvalid) {
+        if (!el) return;
+
+        var addRemove = (isInvalid) ? 'add' : 'remove';
+        el.parentElement.classList[addRemove]('error');
+    }
+
+    function removeAllErrors() {
+        if (ccInput) {
+            addRemoveError(ccInput, false);
+        }
+
+        if (dateInput) {
+            addRemoveError(dateInput, false);
+        }
+
+        if (cvvInput) {
+            addRemoveError(cvvInput, false);
+        }
+    }
+
+    /******************* ************************** *******************/
+    /*******************       SERVICE CALLS        *******************/
+
+    /******************* ************************** *******************/
+
+    /**
+     * Stores data on server then tests data.  Preserves data
+     * even if incorrect.
+     * @return {undefined}
+     */
+    function postCreditCard() {
+
+        // Early return if data has NOT changed since previous submission.
+        if (cancelPostCreditCard()) {
+            return;
+        }
+
+        // Store Submission Values for comparison after potential failure
+        data.cc.submissionValue = data.cc.value;
+        data.expDate.submissionValue = data.expDate.value;
+        data.cvv.submissionValue = data.cvv.value;
+
+        var xmlhttp = getAjaxObject();
+        var postData = {
+            accountNumber: (ccInput) ? data.cc.value : null,
+            cardType: data.cc.type,
+            expirationMonth: (monthInput) ? monthInput.value : null,
+            expirationYear: (yearInput) ? yearInput.value : null,
+            creditCardInfoId: creditCardInfoId,
+            cvNumber: (cvvInput) ? data.cvv.value : null
+        };
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState === 4) {
+                if (this.status >= 200 && this.status < 400) {
+                    removeAllErrors();
+                    isValidBE();
+                } else {
+                    // Failed check, tell parent of error.
+                    postValidationResults(true);
+                }
+            }
+        };
+
+        var url = '/creditcardsubmit/' + creditCardInfoId + '/store';
+        xmlhttp.open('POST', url, true);
+        xmlhttp.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+        xmlhttp.send(JSON.stringify(postData));
+    }
+
+    /**
+     * Checks the provided number agains the Luhn algorithm to determine if it is valid
+     * @param  {[type]}  cardNumber [description]
+     * @return {Boolean}            [description]
+     * https://en.wikipedia.org/wiki/Luhn_algorithm
+     * https://en.wikipedia.org/wiki/Payment_card_number - Cards that support Luhn
+
+     The formula verifies a number against its included check digit, which is usually
+     appended to a partial account number to generate the full account number. This number
+     must pass the following test:
+
+     From the rightmost digit, which is the check digit, moving left, double the value of
+     every second digit; if the product of this doubling operation is greater than 9 (e.g.,
+     8 × 2 = 16), then sum the digits of the products (e.g., 16: 1 + 6 = 7, 18: 1 + 8 = 9)
+     or alternatively subtract 9 from the product (e.g., 16: 16 - 9 = 7, 18: 18 - 9 = 9).
+
+     Take the sum of all the digits.
+
+     If the total modulo 10 is equal to 0 (if the total ends in zero) then the number is
+     valid according to the Luhn formula; else it is not valid.
+
+     Note: All supported cards use numbers that validate via the Luhn algorithm. Verified
+     by Vadim on 8/10/2017.
+
+     */
+    function isValidMod10(cardNumber) {
+        var digitArray = cardNumber.toString().split('').reverse();
+        // Starting off the total with the check digit ;)
+        var total = digitArray.shift() - 0;
+        var current;
+        var currentDoubled;
+
+        // Looping array and coercing each resultant string to a number
+        for (i = 0, len = digitArray.length; i < len; i++) {
+            current = (digitArray[i] - 0);
+            // Every second entry we add either the doubled entry or the doubled entry minus 9 to total
+            if (i % 2 === 0) {
+                currentDoubled = current * 2;
+                total += (currentDoubled > 9) ? (currentDoubled - 9) : currentDoubled;
+                // Otherwise we just add to total
+            } else {
+                total += (current - 0);
+            }
+        }
+        // Return equally divisible by 10
+        return (total % 10 === 0);
+    }
+
+
+    /**
+     * Makes service call to check validity of data
+     * then communicates to parent success/fail.
+     * @return {undefined}
+     */
+    function isValidBE() {
+        var xmlhttp = getAjaxObject();
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState === 4) {
+                if (this.status >= 200 && this.status < 400) {
+                    var obj = JSON.parse(xmlhttp.responseText);
+                    data.all.valid = obj.isValid;
+
+                    switch (MODE) {
+                        case 1:
+                            data.cc.valid = obj.cc;
+                            data.expDate.valid = obj.exp;
+                            data.cvv.valid = obj.cvv;
+                            break;
+                        case 2:
+                            data.cc.valid = obj.cc;
+                            data.expDate.valid = obj.exp;
+                            break;
+                        case 3:
+                            data.cvv.valid = obj.cvv;
+                            break;
+                        case 4:
+                            data.expDate.valid = obj.exp;
+                            data.cvv.valid = obj.cvv;
+                            break;
+                    }
+
+                    updateErrorStates();
+                    postValidationResults();
+                } else {
+                    // Service Error
+                    postValidationResults(true);
+                }
+
+            }
+        };
+
+        var url = '/creditcardsubmit/' + creditCardInfoId + '/isValid?mode=' + MODE;
+        xmlhttp.open('GET', url, true);
+        xmlhttp.send();
+    }
+
+    /*
+      Only for CVV update
+     */
+    function postCVVUpdate() {
+        var url = '/creditcardsubmit/' + creditCardInfoId + '/update';
+        var xmlhttp = getAjaxObject();
+        var data = {
+            cvNumber: cvvInput.value.trim()
+        };
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState === 4) {
+                if (this.status >= 200 && this.status < 400) {
+                    addRemoveError(cvvInput, false);
+                    isValidCVVBE();
+                } else {
+                    // Service Error
+                    postValidationResults();
+                }
+            }
+        }
+
+        xmlhttp.open('PUT', url, true);
+        xmlhttp.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+        xmlhttp.send(JSON.stringify(data));
+    }
+
+    /**
+     * Checks validity of data server-side then
+     * communicates success/fail to parent.
+     * @return undefined
+     */
+    function isValidCVVBE() {
+        var xmlhttp = getAjaxObject();
+
+        xmlhttp.onreadystatechange = function () {
+            if (this.readyState === 4) {
+                if (this.status >= 200 && this.status < 400) {
+                    var json = JSON.parse(xmlhttp.responseText);
+                    if (!json.isValid) {
+                        data.cvv.valid = false;
+                        addRemoveError(cvvInput, true);
+                    }
+                    postValidationResults();
+                } else {
+                    // Service Error
+                    postValidationResults(true);
+                }
+            }
+        };
+
+        var url = '/creditcardsubmit/' + creditCardInfoId + '/isValid';
+        xmlhttp.open('GET', url, true);
+        xmlhttp.send();
+    }
+
+    /******************* ************************** *******************/
+    /*******************       HELPER METHODS       *******************/
+
+    /******************* ************************** *******************/
+
+    /**
+     * If data has NOT changed since previous submission, cancel Post.
+     * @return {boolean} Should we cancel the credit card post?
+     */
+    function cancelPostCreditCard() {
+        var cancelPost = false;
+
+        switch (MODE) {
+            case 1:
+                cancelPost = (data.cc.value === data.cc.submissionValue &&
+                    data.expDate.value === data.expDate.submissionValue &&
+                    data.cvv.value === data.cvv.submissionValue);
+                break;
+            case 2:
+                cancelPost = (data.cc.value === data.cc.submissionValue &&
+                    data.expDate.value === data.expDate.submissionValue);
+                break;
+            case 3:
+                cancelPost = (data.cvv.value === data.cvv.submissionValue);
+                break;
+            case 4:
+                cancelPost = (data.expDate.value === data.expDate.submissionValue &&
+                    data.cvv.value === data.cvv.submissionValue);
+                break;
+        }
+
+        return cancelPost;
+    }
+
+    function getQueryValue(parameter) {
+        // Search string (query params) and remove first character which is '?'
+        var queryParams = window.location.search.substr(1);
+        var paramsArr = queryParams.split('&');
+        var returnValue = '';
+        // Early Return (should never happen)
+        if (paramsArr.length === 0) return;
+
+        // Find matching property, and save value.
+        for (var i = 0; i < paramsArr.length; i++) {
+            var param = paramsArr[i].split('=');
+            if (param[0] === parameter) {
+                returnValue = param[1];
+                break;
+            }
+        }
+        return returnValue;
+    };
+
+    /**
+     * Match first 4 - 6 digits in credit card number to available card validators by testing with prefix regex.
+     * If one is found, apply the classname matching the card type to the logo preview element.
+     * @param {String} ccNumber Credit card number
+     */
+    function styleLogoPreview(ccNumber) {
+        if (ccNumber.length >= 4) {
+            firstFourValidators = firstFourValidatorsMap[ccNumber.length] || [];
+
+            firstFourValidators.forEach(function (validator) {
+                thisMatch = ccNumber.match(validator.prefix);
+
+                if (thisMatch) {
+                    previewClassName = validator.className;
+                    document.getElementById('logo-preview').className = 'preview-icn-checkout z2 ' + previewClassName + '-icn-checkout';
+                }
+            });
+        } else {
+            document.getElementById('logo-preview').className = 'preview-icn-checkout z2';
+        }
+    }
+
+    /**
+     * Match credit card number to available card validators by testing with prefix regex.
+     * If one is found, set reference to validator and card type in data.cc object.
+     * @param {String} ccNumber Credit card number
+     */
+    function setCreditCardValidator(ccNumber) {
+        var validators = cardLengthValidatorMap[ccNumber.length] || [];
+        var thisMatch;
+        var match;
+        var previewClassName = '';
+
+        data.cc.type = 'UNKNOWN';
+        data.cc.validator = null;
+        data.cc.pattern = DEFAULT_PATTERN;
+        data.cc.valid = false;
+
+        styleLogoPreview(ccNumber);
+
+        // Loop all validators that have an allowed card length that matches the input
+        // length we have. Most specific match (based on matched chars length) will win.
+        validators.forEach(function (validator) {
+            thisMatch = ccNumber.match(validator.prefix);
+
+            // If we have a match, set it into our match object, overriding any previous match if the specificity is greater
+            if (thisMatch && (!match || thisMatch[0].length > match.prefix.length)) {
+                match = {
+                    prefix: thisMatch[0],
+                    validator: validator
+                };
+            }
+        });
+
+        if (match) {
+            data.cc.type = match.validator.type;
+            data.cc.validator = match.validator;
+            data.cc.pattern = match.validator.patternsMap[ccNumber.length] || DEFAULT_PATTERN;
+        }
+    }
+
+    function maskCreditCardPattern() {
+        if (maskerEnabled) {
+            var patternToApply = data.cc.validator ? data.cc.validator.patternsMap[data.cc.value.length] || DEFAULT_PATTERN : DEFAULT_PATTERN;
+
+            if (patternToApply && data.cc.appliedPattern !== patternToApply) {
+                // Only apply if it is a new pattern
+                data.cc.appliedPattern = patternToApply;
+                VMasker(ccInput).maskPattern(patternToApply);
+            }
+        }
+    }
+
+    function maskSwapper(event) {
+        var e = event.target;
+        var pattern = /^[0-9]{1,2}\/$/;
+        var doesMatch = event.target.value.match(pattern);
+        if (e.value.length >= 3 && !doesMatch) {
+            VMasker(dateInput).maskPattern('99/99');
+        }
+        if (e.value.length <= 2) {
+            VMasker(dateInput).unMask();
+        }
+        if (e.value.length === 3) {
+            VMasker(dateInput).maskPattern('99/');
+        }
+    }
+
+    function maskExpirationDatePattern() {
+        dateInput.addEventListener('input', maskSwapper.bind(this.value));
+    }
+
+    function getAjaxObject() {
+        var xmlhttp;
+        if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        } else { // code for IE6, IE5
+            xmlhttp = new ActiveXObject('Microsoft.XMLHTTP');
+        }
+
+        return xmlhttp;
+    }
+
+    /**
+     * If CVV has XXX as its value, then clear it on next focus
+     */
+    function clearCVV() {
+        if (cvvInput.value.indexOf('XXX') > -1) {
+            cvvInput.value = '';
+        }
+    }
+
+    /**
+     * If parent domain is trusted, communicate to
+     * parent regarding data validity.
+     */
+    function postValidationResults(isError) {
+        var postData = {
+            isValid: data.all.valid,
+            xhrError: !!isError,
+            t: data.cc.type,
+            lf: data.cc.valid ? data.cc.value.substring(data.cc.value.length - 4) : '',
+            ed: {
+                m: (monthInput) ? monthInput.value : null,
+                y: (yearInput) ? yearInput.value : null
+            }
+        };
+        var errorCodes = [];
+
+        // Build Error Codes based on Mode
+        if (ccInput && !data.cc.valid) errorCodes.push(1);
+        if (dateInput && !data.expDate.valid) errorCodes.push(2);
+        if (cvvInput && !data.cvv.valid) errorCodes.push(3);
+
+        if (errorCodes.length) {
+            postData.error = JSON.stringify(errorCodes);
+        }
+
+        // Communicate validity to parent
+        if (window.parent && window.parent.postMessage && parentDomain && parentDomain.length > 0) {
+            window.parent.postMessage(postData, parentDomain);
+        }
+    }
+
+    /**
+     * If parent domain and msg content trusted,
+     * validate form fields
+     */
+    function processMessage(event) {
+        isAllowed = (event.origin === 'https://www.nike.com' || event.origin === 'https://origin-checkout.test.commerce.nikecloud.com') && event.data === 'validate';
+        if (!isAllowed) {
+            return;
+        }
+        // trigger validation - display errors
+        ccInput.focus();
+        ccInput.blur();
+        dateInput.focus();
+        dateInput.blur();
+        cvvInput.focus();
+        cvvInput.blur();
+    }
+
+    function listenForPostMessage() {
+        window.addEventListener('message', processMessage);
+    }
+
+    /******************* ************************** *******************/
+    /*******************            INIT            *******************/
+    /******************* ************************** *******************/
+
+    // Validate current data on load
+    (function () {
+        if (MODE !== 3) {
+            // data.cc.valid = validateSingle('cc', data.cc.value);
+            // data.expDate.valid = validateSingle('expDate', data.expDate.value);
+            if (MODE !== 4) {
+                maskCreditCardPattern();
+            }
+            maskExpirationDatePattern();
+        }
+
+        if (MODE !== 2) {
+            data.cvv.valid = validateSingle('cvv', data.cvv.value);
+        }
+        listenForPostMessage();
+        isFormValid();
+    })();
+
+}()); // end module
