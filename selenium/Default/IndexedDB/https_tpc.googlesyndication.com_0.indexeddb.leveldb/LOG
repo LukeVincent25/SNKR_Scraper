@@ -1,0 +1,8 @@
+2020/08/28-09:06:03.582 1e90 Reusing MANIFEST C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\IndexedDB\https_tpc.googlesyndication.com_0.indexeddb.leveldb/MANIFEST-000001
+2020/08/28-09:06:03.583 1e90 Recovering log #4
+2020/08/28-09:06:03.584 1e90 Reusing old log C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\IndexedDB\https_tpc.googlesyndication.com_0.indexeddb.leveldb/000004.log 
+2020/08/28-09:06:06.103 46b8 Level-0 table #8: started
+2020/08/28-09:06:06.103 46b8 Level-0 table #8: 0 bytes OK
+2020/08/28-09:06:06.107 46b8 Delete type=0 #4
+2020/08/28-09:06:06.108 46b8 Manual compaction at level-0 from (begin) .. (end); will stop at (end)
+2020/08/28-09:06:06.108 46b8 Manual compaction at level-1 from (begin) .. (end); will stop at (end)

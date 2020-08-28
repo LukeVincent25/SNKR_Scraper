@@ -1,3 +1,7 @@
-2020/08/26-12:22:15.851 2b8c Reusing MANIFEST C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\Session Storage/MANIFEST-000001
-2020/08/26-12:22:15.852 2b8c Recovering log #4
-2020/08/26-12:22:15.852 2b8c Reusing old log C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\Session Storage/000004.log 
+2020/08/28-10:46:00.503 3ed4 Reusing MANIFEST C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\Session Storage/MANIFEST-000001
+2020/08/28-10:46:00.504 3ed4 Recovering log #4
+2020/08/28-10:46:00.505 3ed4 Level-0 table #7: started
+2020/08/28-10:46:00.522 3ed4 Level-0 table #7: 34945 bytes OK
+2020/08/28-10:46:00.522 3ed4 Recovering log #7
+2020/08/28-10:46:00.523 3ed4 Reusing old log C:\Users\lavin\Documents\Visual Studio\Projects\Web Scraper\selenium\Default\Session Storage/000007.log 
+2020/08/28-10:46:00.525 3ed4 Delete type=0 #4
