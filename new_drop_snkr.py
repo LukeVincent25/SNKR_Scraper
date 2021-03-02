@@ -60,8 +60,8 @@ retries = 0
 
 while True:
     #driver.get("https://www.nike.com/launch/t/zoom-type-hyper-pink")
-    #driver.get("https://www.nike.com/launch/t/air-jordan-1-baroque-brown-racer-pink")
-    driver.get("https://www.nike.com/launch/t/air-vapormax-2020-flyknit-smoke-grey")
+    driver.get("https://www.nike.com/launch/t/air-jordan-1-baroque-brown-racer-pink")
+    #driver.get("https://www.nike.com/launch/t/air-vapormax-2020-flyknit-smoke-grey")
     if CART == False:
         
         print("Selecting Size")
